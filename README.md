@@ -1,3 +1,3 @@
 # SAE S3.03
 
-> Remplir ce README avec vos nom, prénom et groupe
+> Lepretre Guerric et Sandras Marine, groupe G
