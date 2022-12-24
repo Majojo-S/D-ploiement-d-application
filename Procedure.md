@@ -261,3 +261,233 @@ user@vm$ psql -h localHost -c "create table test(id int);" matrix matrix
 *Le premier matrix* représente l'utilistaeur
 
 *Le dernier matrix* représente la base de donnée
+
+____________
+# Sujet 3 Installation et configuration de Synapse
+
+## 1. Accès à un service HTTP sur la VM
+On installe un serveur HTTP sur la vm :
+
+```
+user@vm$ sudo -E apt install nginx
+```
+On vérifie qu'il est démarré avec la commande :
+```
+user@vm$ systemctl status nginx.service
+```
+On installe curl (un client HTTP) qui sert à ...
+```
+user@vm$ sudo -E apt install curl
+```
+On vérifie qu'on peut accéder au serveur **nginx** depuis la vm :
+```
+user@vm$ curl http://localhost
+```
+
+Vous devez obtenir ceci :
+```HTML
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+--------------------
+On essaye la même chose mais depuis la machine de virtualisation :
+```
+user@virtu$ curl --noproxy '*' http://192.168.194.3:80
+```
+Si on n'utilise pas le *noproxy* cela ne marche pas.
+La vm est configurer pour ne pas passer par le proxy pour accèder au localhost, mais la machine de virtualisation est configurer pour passer par le proxy pour una adresse http. Le proxy ne connait pas la vm et ne peut donc pas le trouver.
+
+--------------------
+On veut maintenant accèder au service par notre machine physique.
+
+*(Ce n'est pas posible directement puisque seul la machine de virtualisation connait et peut accèder au réseau de la vm)*
+
+Pour ce faire, on doit utiliser la fonction tunnel de **ssh**. 
+
+*(on tape la commande sur la machine de virtualisation)*
+```
+user@virtu$ ssh -L 0.0.0.0:9090:192.168.194.3:80 vm
+```
+*(vm est alias de user@192.168.194.3)*
+
+On tape ensuite l'URL *http://machine-virtualisation.iutinfo.fr:9090* dans un navigateur de notre **machine physique**, et on accède au service de la vm. 
+*machine-virtualisation* a remplacer par le nom de votre machine de virtualisation.
+
+Pour éviter d'utiliser l'option **-L** à chaque fois, on écrit dans le fichier **.ssh/config** de la machine de virtualisation (rajouter les lignes dans l'host vm):
+```
+    LocalForward 0.0.0.0:9090 192.168.198.3:80
+```
+
+## 2. Installation de Synapse
+
+### installation du paquet
+Installation de paquet nécessaire pour synapse :
+```
+user@vm$ sudo -E apt install -y lsb-release wget apt-transport-https
+```
+Récupération du paquet de synapse :
+```
+user@vm$ sudo -E wget -O /usr/share/keyrings/matrix-org-archive-keyring.gpg https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg
+```
+
+écrire dans un fichier les sources pour le paquet
+```
+user@vm$ echo "deb [signed-by=/usr/share/keyrings/matrix-org-archive-keyring.gpg] https://packages.matrix.org/debian/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/matrix-org.list
+```
+Faire une mise à jour du système
+```
+user@vm$ sudo -E apt update
+```
+
+installation de synapse :
+```
+user@vm$ sudo -E apt install matrix-synapse-py3
+```
+Pendant l'installation du packet un message vas apparaitre, il faut mettre machine_virtualisation.iutinfo.fr:8008 et valider. 
+Mettre *non* pour la recuperation de donné pour améliorer le logiciel (ce n'est pas necéssaire pour notre vm).
+
+### Paramétrage spécifique pour une instance dans un réseau privé
+
+Les paramètres par défaut de Synapse considèrent que le serveur est accessible par internet et qu’il ne cherche pas à contacter des éléments situés sur un réseau privé, or ce réseau est privé.
+
+dans **/etc/matrix-synapse/homeserveur.yaml** modifier les dernières lignes
+```
+trusted_key_servers: 
+    - serveur_name: "matrix.org"
+```
+
+changer en :
+```
+trusted_key_servers: []
+```
+*(supprimer le serveur_name)*
+
+### Utilisation d’une base Postgres
+
+Puisque Synapse utilise *sqlite* par défaut pour la base de donnée, on doit le configurer pour qu'il utilise postgreSQL à la place.
+
+Modifier au fichier **/etc/matrix-synapse/homeserveur.yaml** les lignes :
+```
+database:
+  name: sqlite3
+  args:
+```
+En :
+```
+database:
+  name: psycopg2
+  args:
+    user: matrix
+    password: matrix
+    database: matrix
+    host: localhost
+    cp_min: 5
+    cp_max: 10
+```
+
+La base de donnée "matrix" créée précédemment avait les options par défaut, elle doit être réécrite puisque Synapse ne les comprend pas.
+
+Se connecter à PosgreSQL :
+```
+user@vm$  sudo su - postgres
+```
+
+Détruire l'ancienne base de donnée :
+```
+postgres@vm$ dropdb matrix;
+```
+
+Créer une base de donnée :
+```
+postgres@vm$ createdb --encoding=UTF8 --locale=C --template=template0 --owner=matrix matrix;
+```
+Quitter :
+```
+postgres@vm$ exit
+```
+
+On vérifie si la base PostgreSQL est utilisée par Synapse. Pour cela on redémarre Synapse:
+```
+user@vm$ sudo systemctl restart matrix-synapse.service
+```
+On regarde le contenu de la base de donnée matrix :
+```
+user@vm$ psql -h localhost -c "\d" matrix matrix
+```
+Tout est bon si il y a aucune erreur et qu'il y a un affichage de table comme celui-ci:
+```
+                              List of relations
+ Schema |                      Name                      |   Type   | Owner
+--------+------------------------------------------------+----------+--------
+ public | access_tokens                                  | table    | matrix
+ public | account_data                                   | table    | matrix
+ public | account_data_sequence                          | sequence | matrix
+ public | account_validity                               | table    | matrix
+ public | application_services_state                     | table    | matrix
+ public | application_services_txn_id_seq                | sequence | matrix
+ public | application_services_txns                      | table    | matrix
+```
+
+
+### Création d’utilisateurs
+
+Pour créer un utilisateur du serveur, il faut utiliser le script **register_new_matrix_user** et ajouter dans **/etc/matrix-synapse/homeserveur.yaml** la ligne suivante, servant à partager la clé avec le script :
+```
+registration_shared_secret: "zesrdtyfihojpighjfchgxc"
+```
+On redémarre Synapse(commande vu précédemment)
+
+On tape ensuite :
+```
+user@vm$ register_new_matrix_user -c /etc/matrix-synapse/homeserver.yaml
+```
+Puis on suit les instruction pour créer l'utilisateur.
+
+### Connexion à votre serveur Matrix
+
+On passe par un client element à l'adresse *http://tp.iutinfo.fr:8888* pour se connecter à notre serveur.
+Sélectionner se connecter puis modifier le serveur d'accueil matrix.org par votre url de votre machine de virtualisation (*http://machine-virtualisation.iutinfo.fr:9090*).
+
+Vous remarquerez qu'il ne trouve pas le serveur, c'est normal car l'url mène au serveur nginx configuré plus tôt.
+Il faut changer la ligne *LocalForward* du fichier (de votre machine de virtualisation) **.ssh/config** de votre host vm avec :
+```
+LocalForward 0.0.0.0:9090 localhost:8008
+```
+
+Connecté vous à votre vm et le serveur d'accueil sera reconnu.
+Connecté vous avec l'utilisateur créé plus tôt a votre serveur.
+
+Vous atteignez l'interface de synapse et maintenant vous pouvez créer un salon pour discuter avec les utilisateur enregistrer sur votre serveur Synapse.
+
+### Activation de l’enregistrement des utilisateurs 
+
+Pour activer l'enregistration d'utilisateur non connu sans vérification, il faut rajouter les lignes suivant dans le fichier **/etc/matrix-synapse/homeserveur.yaml**
+```
+enable_registration: true
+enable_registration_without_verification: true
+```
+
+Il suffit de créer un nouveau compte, grâce à l'element web, en mettait le serveur visé.
