@@ -491,3 +491,38 @@ enable_registration_without_verification: true
 ```
 
 Il suffit de créer un nouveau compte, grâce à l'element web, en mettait le serveur visé.
+
+_______
+# Sujet 4 Installation et configuration de Element Web
+
+## Element Web
+
+![comparaisonElementWeb](apachevsnginx.png "Comparaison").
+On a choisie Apache puisqu'on le connait mieux et qu'on préfère séparer le serveur web du reverse proxy.
+
+
+_____________
+Installation :
+```
+user@vm$ sudo -E apt install apache2
+```
+
+Configuartion pour que l'Element soit accessible sur le port 8080 sur la vm.
+
+Aller dans le fichier **/etc/apache2/ports.conf** pour remplacer :
+```
+Listen 80
+```
+En :
+```
+Listen 8080
+```
+
+Redirection ssh pour que le serveur web soit accessible sur le port 9090 de la machine de virtualisation :
+
+Changer la ligne *LocalForward* du fichier (de votre machine de virtualisation) **.ssh/config** de votre host vm avec :
+```
+LocalForward 0.0.0.0:9090 localhost:8080
+```
+
+## Reverse Proxy pour Synapse
