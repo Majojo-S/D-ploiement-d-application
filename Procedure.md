@@ -498,6 +498,7 @@ _______
 ## Element Web
 
 ![comparaisonElementWeb](apachevsnginx.png "Comparaison").
+
 On a choisie Apache puisqu'on le connait mieux et qu'on préfère séparer le serveur web du reverse proxy.
 
 
