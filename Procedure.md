@@ -506,10 +506,10 @@ On doit choisir entre 2 serveur web pour exécuter Element :
 
 - Apache 
 
-![ApacheLogo](Image/Apache2-Logo1.png "Logo").
-- Nginx ![NginxLogo](Image/nginx-logo.jpg "Logo")
+![ApacheLogo](image/Apache2-Logo1.png "Logo").
+- Nginx ![NginxLogo](image/nginx-logo.jpg "Logo")
 
-![comparaisonElementWeb](Image/apachevsnginx.png "Comparaison")
+![comparaisonElementWeb](image/apachevsnginx.png "Comparaison")
 On a choisie Apache puisqu'on le connait mieux et qu'on le préfère puisqu'il est facile et souple.
 
 
@@ -593,9 +593,9 @@ source: https://www.it-connect.fr/les-serveurs-proxy-et-reverse-proxy-pour-les-d
 
 Il y a divers réverse proxy :
 
-![SquidLogo](Image/Squid-cache_logo.jpg "Logo")
+![SquidLogo](image/Squid-cache_logo.jpg "Logo")
 - Squid : c'est un proxy et reverse proxy qui n'est pas fait spécialement pour les serveur web mais pour la généralité.
-![HAProxy](Image/Haproxy-logo.png "Logo")
+![HAProxy](image/Haproxy-logo.png "Logo")
 - HAProxy : c'est le meilleur logiciel a utilisé pour les plateforme avec beaucoup de requète comme Twitter, GitHub ou Instagram.
 
 - mod_proxy (Apache) : C'est une extension d'Apache.
