@@ -4,7 +4,7 @@ _______
 
 Se connecter à la machine de virtualisation: 
 ```
-user@phys$ ssh marine.sandras.etu@frene11.iutinfo.fr
+user@phys$ ssh prenom.nom.etu@frene11.iutinfo.fr
 ```
 
 ## 1. Simplifier la connection ssh
@@ -20,7 +20,7 @@ On vous demandera un chemin pour le fichier de la clé puis une passphrase (un m
 
 2. Copier la clée publique générer dans autorized_key de la machine de virtualisation : 
 ```
-user@phys$ ssh-copy-id (-i "cheminCleePublique") marine.sandras.etu@frene11.iutinfo.fr
+user@phys$ ssh-copy-id (-i "cheminCleePublique") prenom.nom.etu@frene11.iutinfo.fr
 ```
 
 La première connection, suite à ceci, on vous demandera la clé privée et normalement aucun mot de passe et passphrase ne sera demander pendant les prochaines connections.
@@ -135,7 +135,7 @@ Pour éviter de taper tout l'adresse des machines en se connectant en ssh, on cr
 ```
 Host virtu
 		HostName frene11.iutinfo.fr
-		User marine.sandras.etu
+		User prenom.nom.etu
 
 Host vm
 		HostName 192.168.194.3
@@ -144,9 +144,13 @@ Host vm
 
 Pour se connecter directement en ssh à la vm de notre machine physique (donc sans passer par la machine de virtualisation).
 
-On écrit dans le fichier **.bashrc** la ligne :
+On écrit dans le fichier dans le même fichier la ligne :
 ```
-alias vmjump = 'ssh -J virtu vm'
+Host vmjump
+        HostName 192.168.194.3
+        User user
+        ForwardAgent yes
+        ProxyJump virtu
 ```
 
 _______
@@ -373,7 +377,7 @@ Mettre *non* pour la recuperation de donné pour améliorer le logiciel (ce n'es
 
 Les paramètres par défaut de Synapse considèrent que le serveur est accessible par internet et qu’il ne cherche pas à contacter des éléments situés sur un réseau privé, or ce réseau est privé.
 
-dans **/etc/matrix-synapse/homeserveur.yaml** modifier les dernières lignes
+dans **/etc/matrix-synapse/homeserver.yaml** modifier les dernières lignes
 ```
 trusted_key_servers: 
     - serveur_name: "matrix.org"
@@ -389,7 +393,7 @@ trusted_key_servers: []
 
 Puisque Synapse utilise *sqlite* par défaut pour la base de donnée, on doit le configurer pour qu'il utilise postgreSQL à la place.
 
-Modifier au fichier **/etc/matrix-synapse/homeserveur.yaml** les lignes :
+Modifier au fichier **/etc/matrix-synapse/homeserver.yaml** les lignes :
 ```
 database:
   name: sqlite3
@@ -454,9 +458,9 @@ Tout est bon si il y a aucune erreur et qu'il y a un affichage de table comme ce
 
 ### Création d’utilisateurs
 
-Pour créer un utilisateur du serveur, il faut utiliser le script **register_new_matrix_user** et ajouter dans **/etc/matrix-synapse/homeserveur.yaml** la ligne suivante, servant à partager la clé avec le script :
+Pour créer un utilisateur du serveur, il faut utiliser le script **register_new_matrix_user** et ajouter dans **/etc/matrix-synapse/homeserver.yaml** la ligne suivante, servant à partager la clé avec le script :
 ```
-registration_shared_secret: "zesrdtyfihojpighjfchgxc"
+registration_shared_secret: "mdp"
 ```
 On redémarre Synapse(commande vu précédemment)
 
@@ -484,7 +488,7 @@ Vous atteignez l'interface de synapse et maintenant vous pouvez créer un salon 
 
 ### Activation de l’enregistrement des utilisateurs 
 
-Pour activer l'enregistration d'utilisateur non connu sans vérification, il faut rajouter les lignes suivant dans le fichier **/etc/matrix-synapse/homeserveur.yaml**
+Pour activer l'enregistration d'utilisateur non connu sans vérification, il faut rajouter les lignes suivant dans le fichier **/etc/matrix-synapse/homeserver.yaml**
 ```
 enable_registration: true
 enable_registration_without_verification: true
@@ -495,14 +499,21 @@ Il suffit de créer un nouveau compte, grâce à l'element web, en mettait le se
 _______
 # Sujet 4 Installation et configuration de Element Web
 
-## Element Web
+## 1. Element Web
 
-![comparaisonElementWeb](apachevsnginx.png "Comparaison").
+### A. Serveur Web
+On doit choisir entre 2 serveur web pour exécuter Element :
 
-On a choisie Apache puisqu'on le connait mieux et qu'on préfère séparer le serveur web du reverse proxy.
+- Apache 
+
+![ApacheLogo](Image/Apache2-Logo1.png "Logo").
+- Nginx ![NginxLogo](Image/nginx-logo.jpg "Logo")
+
+![comparaisonElementWeb](Image/apachevsnginx.png "Comparaison")
+On a choisie Apache puisqu'on le connait mieux et qu'on le préfère puisqu'il est facile et souple.
 
 
-_____________
+--------------
 Installation :
 ```
 user@vm$ sudo -E apt install apache2
@@ -526,4 +537,70 @@ Changer la ligne *LocalForward* du fichier (de votre machine de virtualisation) 
 LocalForward 0.0.0.0:9090 localhost:8080
 ```
 
-## Reverse Proxy pour Synapse
+### B. Installation d'Element
+
+```
+user@vm:/var/www$ sudo -E wget https://github.com/vector-im/element-web/releases/download/v1.11.16/element-v1.11.16.tar.gz
+```
+```
+user@vm:/var/www$ sudo tar -xf element-v1.11.16.tar.gz
+```
+### C. Configurer Element
+2 méthodes pour accéder à Element :
+
+- renommer *html* en *ancien* et renommer *element-v1.11.16* en *html* à l'emplacement **/var/www**
+
+ou
+
+- créer element.conf dans /etc/apache2/site-available :
+    ```
+    <VirtualHOST defaut:8080>
+        Serveur_Admin webadmin@localhost
+        DocumentRoot /var/www/element
+        ErrorLog ${APACHE_LOG_DIR}/error-element.log
+        CustomLog ${APACHE_LOG_DIR}/access-element.log combine
+    </VirtualHOST>
+    ```
+
+puis faire cette commande suivante :
+```
+sudo a2ensite element.conf
+sudo a2dissite 000-default.conf
+```
+
+____________________________
+
+Dans le dossier contenant Element, renommer le fichier *config.sample.json* en *config.json* :
+```
+user@vm$ sudo mv config.sample.json config.json
+```
+Puis dans le fichier config.json modifier la ligne
+```
+"base_url": "https://matrix-client.matrix.org",
+```
+En
+```
+"base_url": "https://machinevirtualisation.iutinfo.fr:9090",
+```
+
+## 2. Reverse Proxy pour Synapse
+
+source: https://www.it-connect.fr/les-serveurs-proxy-et-reverse-proxy-pour-les-debutants/#III_Cest_quoi_un_reverse_proxy
+
+À l'inverse du proxy, le reverse proxy comme son nom l'indique fonctionne à l'inverse, c'est-à-dire qu'il permet aux utilisateurs externes d'accéder à une ressource du réseau interne. Lorsque vous accédez à une ressource protégée par un reverse proxy, vous contactez le reverse proxy et c'est lui qui gère la requête, c'est-à-dire qu'il va contacter le serveur cible à votre place et vous retourner la réponse. Le client n'a pas de visibilité sur le ou les serveurs cachés derrière le reverse proxy. Le reverse proxy agit comme une barrière de protection vis-à-vis des serveurs du réseau interne, et il va permettre de publier la ressource de façon sécurisée.
+
+### A. Introduction et choix
+
+Il y a divers réverse proxy :
+
+![SquidLogo](Image/Squid-cache_logo.jpg "Logo")
+- Squid : c'est un proxy et reverse proxy qui n'est pas fait spécialement pour les serveur web mais pour la généralité.
+![HAProxy](Image/Haproxy-logo.png "Logo")
+- HAProxy : c'est le meilleur logiciel a utilisé pour les plateforme avec beaucoup de requète comme Twitter, GitHub ou Instagram.
+
+- mod_proxy (Apache) : C'est une extension d'Apache.
+- Nginx : Il fait serveur web et reverse proxy.
+
+On décide de prendre l'extension d'Apache, puisque l'on connait apache et les deux premier cité ci-dessus sont pas necessaire pour notre petit serveur web avec peu de requètes.
+
+### B. Installation
