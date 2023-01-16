@@ -632,3 +632,30 @@ Puis modifier dans */etc/apache2/mods-available/proxy.conf* :
            Require all denied
         </Proxy>
 ```
+_______
+# Sujet 5
+
+## Architecture final
+
+Nous allons séparer les services d'Element, Synapse et PostgreSQL.
+Pour ce fait on aura une vm **matrix** avec Synapse, **db** avec PostgreSQL et **element** avec Element.
+
+Tout d'abord on supprime et recrée matrix, on crée aussi db et element.
+On les configure comme vu dans le sujet 1 et 2 :
+> ip : 192.168.194.3 (matrix) | 192.168.194.5 (db) | 192.168.194.6 (element)
+> configuration du proxy
+> installation d'outils
+> donner l'accès *sudo* à *user*
+> mise a jour de l'heure
+> nom de l'host ("matrix" | "db" | "element")
+> mise a jour général
+
+Dans le fichier **/etc/hosts** (de toute les vm) rajouter les adresses des autres vm, comme par exemple sur matrix :
+```
+127.0.0.1       localhost
+127.0.1.1       matrix
+192.168.194.4   rproxy
+192.168.194.5   db
+192.168.194.6   element
+```
+
