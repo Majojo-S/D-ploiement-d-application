@@ -507,7 +507,7 @@ On doit choisir entre 2 serveur web pour exécuter Element :
 - Apache 
 
 ![ApacheLogo](image/Apache2-Logo1.png "Logo").
-- Nginx ![NginxLogo](image/nginx-logo.jpg "Logo")
+- Nginx
 
 ![comparaisonElementWeb](image/apachevsnginx.png "Comparaison")
 On a choisie Apache puisqu'on le connait mieux et qu'on le préfère puisqu'il est facile et souple.
@@ -604,3 +604,31 @@ Il y a divers réverse proxy :
 On décide de prendre l'extension d'Apache, puisque l'on connait apache et les deux premier cité ci-dessus sont pas necessaire pour notre petit serveur web avec peu de requètes.
 
 ### B. Installation
+
+Activer le service proxy d'Apache
+```
+user@rproxy$ sudo a2enmod proxy proxy_http
+```
+
+Redémarrer Apache
+```
+user@rproxy$ sudo systemctl restart apache2.service
+```
+
+Créer le fichier rproxy.conf dans */etc/apache2/sites-available/* et écrire dedans :
+```
+<VirtualHost *:80>
+        ServerName frene11.iutinfo.fr
+        ProxyRequests Off
+        ProxyPass / http://192.168.194.3:8008/
+        ProxyPassReverse / http://192.168.194.3:8008/
+</VirtualHost>
+```
+
+Puis modifier dans */etc/apache2/mods-available/proxy.conf* :
+```
+        <Proxy http://frene11.iutinfo.fr:9090>
+           AddDefaultCharset off
+           Require all denied
+        </Proxy>
+```
