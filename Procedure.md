@@ -664,7 +664,7 @@ On les configure comme vu dans les sujet 1 et 2 :
 Réinstaller Synapse comme vu précédemment au sujet 3 avec les même configurations dans le fichier **homeserver.yaml** sauf :
 > Pour les adresses
 ```
-    blind_address: [::1, 127.0.0.1, 192.168.194.3]
+    blind_address: ['::1', '127.0.0.1', '192.168.194.3']
 ```
 > Pour l'host de la base de données, mettre l'adresse de la machine db
 ```
@@ -680,17 +680,37 @@ listen_addresses = '*'
 > Et **pg_hba.conf**
 ``` 
 # IPv4 local connections:
-host     all      all    0.0.0.0/0   md5
-### Installation Element sur element
+host     matrix          matrix          192.168.194.3/32        md5
 ```
 
 > Recréer la base de données matrix avec son utilisateur matrix avec l'encodage (vu au sujet 3) pour que synapse comprend.
 
 ### Configuration d'Element sur element
-Installer et configurer Element comme vu précédemment au sujet 4.
+Il suffit juste d'installer et configurer Element comme vu précédemment au sujet 4.
 
-...
 
 ### Configuration de rproxy
 
-...
+//TODO : Intro des 2 adresses
+
+Votre **matrix.conf** doit être écrit comme ceci :
+```
+<VirtualHost *:80>
+	ServerName frene11.iutinfo.fr
+	ProxyRequests Off
+	ProxyPass / http://192.168.194.3:8008/
+	ProxyPassReverse / http://192.168.194.3:8008/
+</VirtualHost>
+```
+
+Ecrire un element.conf pour accèder a Element :
+```
+<VirtualHost *:80>
+	ServerName frene11.iut-infobio.priv.univ-lille1.fr
+	ProxyRequests Off
+	ProxyPass / http://192.168.194.6:80/
+	ProxyPassReverse / http://192.168.194.6:80/
+</VirtualHost>
+```
+
+Après tout cela utiliser le ssh tunnel vers rproxy, puis vérifier que vous pouvez accèder à matrix directement et par Element.
