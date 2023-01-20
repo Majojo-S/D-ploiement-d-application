@@ -618,7 +618,7 @@ user@rproxy$ sudo systemctl restart apache2.service
 Créer le fichier matrix.conf dans */etc/apache2/sites-available/* et écrire dedans :
 ```
 <VirtualHost *:80>
-        ServerName frene11.iutinfo.fr
+        ServerName virtu.iutinfo.fr
         ProxyRequests Off
         ProxyPass / http://192.168.194.3:8008/
         ProxyPassReverse / http://192.168.194.3:8008/
@@ -627,7 +627,7 @@ Créer le fichier matrix.conf dans */etc/apache2/sites-available/* et écrire de
 
 Puis modifier dans */etc/apache2/mods-available/proxy.conf* :
 ```
-        <Proxy http://frene11.iutinfo.fr:9090>
+        <Proxy http://virtu.iutinfo.fr:9090>
            AddDefaultCharset off
            Require all denied
         </Proxy>
@@ -691,12 +691,12 @@ Il suffit juste d'installer et configurer Element comme vu précédemment au suj
 
 ### Configuration de rproxy
 
-//TODO : Intro des 2 adresses
+On souhaite accèder directement à matrix(Synapse) par l'adresse *virtu.iutinfo.fr:9090* et à Element par l'adresse *virtu.iut-infobio.priv.univ-lille1.fr:9090* en passant par le reverse proxy, pour se faire :
 
 Votre **matrix.conf** doit être écrit comme ceci :
 ```
 <VirtualHost *:80>
-	ServerName frene11.iutinfo.fr
+	ServerName virtu.iutinfo.fr
 	ProxyRequests Off
 	ProxyPass / http://192.168.194.3:8008/
 	ProxyPassReverse / http://192.168.194.3:8008/
@@ -706,7 +706,7 @@ Votre **matrix.conf** doit être écrit comme ceci :
 Ecrire un element.conf pour accèder a Element :
 ```
 <VirtualHost *:80>
-	ServerName frene11.iut-infobio.priv.univ-lille1.fr
+	ServerName virtu.iut-infobio.priv.univ-lille1.fr
 	ProxyRequests Off
 	ProxyPass / http://192.168.194.6:80/
 	ProxyPassReverse / http://192.168.194.6:80/
