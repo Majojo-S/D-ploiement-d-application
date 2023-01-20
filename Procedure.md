@@ -4,7 +4,7 @@ _______
 
 Se connecter à la machine de virtualisation: 
 ```
-user@phys$ ssh prenom.nom.etu@frene11.iutinfo.fr
+user@phys$ ssh prenom.nom.etu@nomMachine.iutinfo.fr
 ```
 
 ## 1. Simplifier la connection ssh
@@ -20,7 +20,7 @@ On vous demandera un chemin pour le fichier de la clé puis une passphrase (un m
 
 2. Copier la clée publique générer dans autorized_key de la machine de virtualisation : 
 ```
-user@phys$ ssh-copy-id (-i "cheminCleePublique") prenom.nom.etu@frene11.iutinfo.fr
+user@phys$ ssh-copy-id (-i "cheminCleePublique") prenom.nom.etu@fnomMachine.iutinfo.fr
 ```
 
 La première connection, suite à ceci, on vous demandera la clé privée et normalement aucun mot de passe et passphrase ne sera demander pendant les prochaines connections.
@@ -134,7 +134,7 @@ root@vm# apt install vim less tree rsync
 Pour éviter de taper tout l'adresse des machines en se connectant en ssh, on crée des alias dans le fichier **HOME/.ssh/config** :
 ```
 Host virtu
-		HostName frene11.iutinfo.fr
+		HostName nomMachine.iutinfo.fr
 		User prenom.nom.etu
 
 Host vm
@@ -505,8 +505,8 @@ _______
 On doit choisir entre 2 serveur web pour exécuter Element :
 
 - Apache 
-
 ![ApacheLogo](image/Apache2-Logo1.png "Logo").
+
 - Nginx
 
 ![comparaisonElementWeb](image/apachevsnginx.png "Comparaison")
@@ -570,9 +570,9 @@ sudo a2dissite 000-default.conf
 
 ____________________________
 
-Dans le dossier contenant Element, renommer le fichier *config.sample.json* en *config.json* :
+Dans le dossier contenant Element, copier le fichier *config.sample.json* en *config.json* :
 ```
-user@vm$ sudo mv config.sample.json config.json
+user@vm$ sudo cp config.sample.json config.json
 ```
 Puis dans le fichier config.json modifier la ligne
 ```
@@ -615,7 +615,7 @@ Redémarrer Apache
 user@rproxy$ sudo systemctl restart apache2.service
 ```
 
-Créer le fichier rproxy.conf dans */etc/apache2/sites-available/* et écrire dedans :
+Créer le fichier matrix.conf dans */etc/apache2/sites-available/* et écrire dedans :
 ```
 <VirtualHost *:80>
         ServerName frene11.iutinfo.fr
@@ -638,19 +638,19 @@ _______
 ## Architecture final
 
 Nous allons séparer les services d'Element, Synapse et PostgreSQL.
-Pour ce fait on aura une vm **matrix** avec Synapse, **db** avec PostgreSQL et **element** avec Element.
+Pour se faire, on aura une vm **matrix** avec Synapse, **db** avec PostgreSQL et **element** avec Element.
 
-Tout d'abord on supprime et recrée matrix, on crée aussi db et element.
-On les configure comme vu dans le sujet 1 et 2 :
-> ip : 192.168.194.3 (matrix) | 192.168.194.5 (db) | 192.168.194.6 (element)
-> configuration du proxy
-> installation d'outils
-> donner l'accès *sudo* à *user*
-> mise a jour de l'heure
-> nom de l'host ("matrix" | "db" | "element")
-> mise a jour général
+> Tout d'abord on supprime et recrée matrix, on crée aussi db et element.
+On les configure comme vu dans les sujet 1 et 2 :
+- ip : 192.168.194.3 (matrix) | 192.168.194.5 (db) | 192.168.194.6 (element)
+- configuration de l'environnement proxy de l'université
+- installation d'outils
+- donner l'accès *sudo* à *user*
+- mise a jour de l'heure
+- nom de l'host ("matrix" | "db" | "element")
+- mise a jour général
 
-Dans le fichier **/etc/hosts** (de toute les vm) rajouter les adresses des autres vm, comme par exemple sur matrix :
+> Dans le fichier **/etc/hosts** (de toute les vm) rajouter les adresses des autres vm, comme par exemple sur matrix :
 ```
 127.0.0.1       localhost
 127.0.1.1       matrix
@@ -659,3 +659,38 @@ Dans le fichier **/etc/hosts** (de toute les vm) rajouter les adresses des autre
 192.168.194.6   element
 ```
 
+### Installation Synapse sur matrix
+
+Réinstaller Synapse comme vu précédemment au sujet 3 avec les même configurations dans le fichier **homeserver.yaml** sauf :
+> Pour les adresses
+```
+    blind_address: [::1, 127.0.0.1, 192.168.194.3]
+```
+> Pour l'host de la base de données, mettre l'adresse de la machine db
+```
+    host: 192.168.194.5
+```
+### Installation PostgreSQL sur db
+
+Réinstaller PostgreSQL comme vu précédemment au sujet 2.
+> Modifier le fichier **postgresql.conf** 
+```
+listen_addresses = '*'
+```
+> Et **pg_hba.conf**
+``` 
+# IPv4 local connections:
+host     all      all    0.0.0.0/0   md5
+### Installation Element sur element
+```
+
+> Recréer la base de données matrix avec son utilisateur matrix avec l'encodage (vu au sujet 3) pour que synapse comprend.
+
+### Configuration d'Element sur element
+Installer et configurer Element comme vu précédemment au sujet 4.
+
+...
+
+### Configuration de rproxy
+
+...
